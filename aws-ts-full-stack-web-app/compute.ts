@@ -44,6 +44,20 @@ let server = new aws.ec2.Instance("web-server-www", {
     userData: userData
 });
 
+let launchConfiguration = new aws.ec2.LaunchConfiguration("launchconfiguration", {
+    securityGroups: [ vmSecurityGroup.id ],
+    instanceType: machineSize,
+    imageId: ami,
+    userData: userData,
+});
+
+let autoscalinggroup = new aws.autoscaling.Group("autoscalinggroup", {
+    launchConfiguration: launchConfiguration.id,
+    minSize: 1,
+    maxSize: 10,
+    desiredCapacity: 2,
+});
+
 // TODO: Create an auto scaling group, instead of the individual EC2 instance, and then
 // attach that auto scaling group to the serverTargetGroup?
 
@@ -84,4 +98,29 @@ let wwwHttpsListenerRules = new aws.elasticloadbalancingv2.ListenerRule("wwwHTTP
         type: "forward",
         targetGroupArn: serverTargetGroup.arn,
     }],
+});
+
+let lbAsgAttachment = new aws.autoscaling.Attachment("lbattachment", {
+    albTargetGroupArn: serverTargetGroup.arn,
+    autoscalingGroupName: autoscalinggroup.name,
+});
+
+async function tgResourceLabel(lb: aws.elasticloadbalancingv2.LoadBalancer,
+    tg: aws.elasticloadbalancingv2.TargetGroup): Promise<string> {
+    // "app/<lbname>/<lbid>/targetgroup/<tgname>/<tgid>"
+    return await lb.arnSuffix + "/" + await tg.arnSuffix;
+}
+
+let scalingPolicy = new aws.autoscaling.Policy("scalingpolicy", {
+    autoscalingGroupName: autoscalinggroup.name,
+    policyType: "TargetTrackingScaling",
+    adjustmentType: "ChangeInCapacity",
+    scalingAdjustment: 1,
+    targetTrackingConfiguration: {
+        predefinedMetricSpecification: {
+            predefinedMetricType: "ALBRequestCountPerTarget",
+            resourceLabel: tgResourceLabel(loadBalancer.alb, serverTargetGroup),
+        },
+        targetValue: 10,
+    },
 });
