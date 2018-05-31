@@ -1,8 +1,12 @@
-import * as pulumi from "@pulumi/pulumi";
-import * as aws from "@pulumi/aws";
+import * as cloud from "@pulumi/cloud-aws";
 
-// Create an AWS resource (S3 Bucket)
-const bucket = new aws.s3.Bucket("my-bucket");
+// Create an API endpoint
+let endpoint = new cloud.HttpEndpoint("echo");
 
-// Export the DNS name of the bucket
-export const bucketName = bucket.bucketDomainName;
+endpoint.get("/echo", async (req, res) => {
+    const now = Date.now();
+    console.log(`Responding with ${now}`);
+    res.status(200).json({ now: now });
+});
+
+module.exports.endpoint = endpoint.publish().url;
