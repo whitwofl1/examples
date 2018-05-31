@@ -19,6 +19,7 @@ import * as pulumi from "@pulumi/pulumi";
 
 // Import modules so that we ensure its cloud resources are created.
 import "./dns";
+import "./compute";
 import "./loadBalancer";
 
 // Import these modules with names so we can export resource properties.

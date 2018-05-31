@@ -22,6 +22,7 @@
         "index.ts",
 
         "cdn.ts",
+        "compute.ts",
         "config.ts",
         "dns.ts",
         "loadBalancer.ts",

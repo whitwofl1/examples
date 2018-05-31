@@ -94,7 +94,7 @@ let emptyHttpTargetGroup = new aws.elasticloadbalancingv2.TargetGroup("emptyTG",
     vpcId: defaultVpc.vpcId,
 });
 
-let svcHttpListener = new aws.elasticloadbalancingv2.Listener("httpListener", {
+export const httpListener = new aws.elasticloadbalancingv2.Listener("httpListener", {
     loadBalancerArn: alb.arn,
     port: httpPort,
     protocol: "HTTP",
@@ -104,7 +104,7 @@ let svcHttpListener = new aws.elasticloadbalancingv2.Listener("httpListener", {
     }],
 });
 
-let svcHttpsListener = new aws.elasticloadbalancingv2.Listener("httpsListener", {
+export const httpsListener = new aws.elasticloadbalancingv2.Listener("httpsListener", {
     loadBalancerArn: alb.arn,
     port: httpsPort,
     protocol: "HTTPS",

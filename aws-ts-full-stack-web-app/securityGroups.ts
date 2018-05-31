@@ -34,6 +34,10 @@ const ALL = {
     cidrBlocks: [ "0.0.0.0/0" ],
 };
 
+const sshPort = 22;
+const httpPort = 80;
+const httpsPort = 443;
+
 function oneTcpPortFromAnywhere(port: number) {
     return {
         fromPort: port,
@@ -44,14 +48,25 @@ function oneTcpPortFromAnywhere(port: number) {
 }
 
 // loadBalancerSecurityGroup is the security group for the Load Balancer.
-export let loadBalancerSecurityGroup = new aws.ec2.SecurityGroup("loadBalancerSecurityGroup", {
+export const loadBalancerSecurityGroup = new aws.ec2.SecurityGroup(
+    "loadBalancerSecurityGroup", {
     vpcId: defaultVpc.vpcId,
     ingress: [
-        oneTcpPortFromAnywhere(80),  // HTTP
-        oneTcpPortFromAnywhere(443),  // HTTPS
+        oneTcpPortFromAnywhere(httpPort),
+        oneTcpPortFromAnywhere(httpsPort),
     ],
     egress: [ ALL ],  // See TerraformEgressNote
 });
 
-// TODO: Add addVMSecurityGroup when EC2 is hooked up.
+// vmSecurityGroup is the security group for various EC2 instances.
+export const  vmSecurityGroup = new aws.ec2.SecurityGroup(
+    "vmSecurityGroup", { 
+    vpcId: defaultVpc.vpcId,
+    ingress: [
+        oneTcpPortFromAnywhere(sshPort),
+        oneTcpPortFromAnywhere(httpPort),
+        oneTcpPortFromAnywhere(httpsPort),
+    ],
+});
+
 // TODO: Add databaseSecurityGroup when RDS is hooked up.

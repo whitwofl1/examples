@@ -18,6 +18,7 @@ import * as aws from "@pulumi/aws";
 import * as pulumi from "@pulumi/pulumi";
 
 import * as config from "./config";
+import * as loadBalancer from "./loadBalancer";
 
 // Create the DNS records mapping the host domain for the site to the
 // CloudFront distribution.
@@ -65,7 +66,31 @@ const distributionArgs: aws.cloudfront.DistributionArgs = {
         // well as the duration of cached content. See the AWS documentation for more information.
     },
 
-    // TODO: Specify additional caching behaviors to route traffic to the dynamic origin.
+    // Custom caching behaviors based on URL path. We just carve out /api to be directed to
+    // the load balancer, which sits in front of our compute instances.
+    cacheBehaviors: [
+        {
+            targetOriginId: loadBalancer.alb.arn,
+            pathPattern: "/api",
+    
+            viewerProtocolPolicy: "redirect-to-https",
+            allowedMethods: ["GET", "HEAD", "OPTIONS"],
+            cachedMethods: ["GET", "HEAD", "OPTIONS"],
+    
+            // Forward on parts of the request as they are needed by the backend.
+            forwardedValues: {
+                cookies: {
+                    forward: "all",
+                },
+                headers: ["*"],
+                queryString: true,
+            },
+    
+            minTtl: 0,
+            defaultTtl: 60,
+            maxTtl: 60,
+        },
+    ],
 
     // "All" is the most broad distribution, and also the most expensive. 100 is the least broad, and also the least expensive.
     // See: https://aws.amazon.com/cloudfront/pricing/
@@ -78,8 +103,20 @@ const distributionArgs: aws.cloudfront.DistributionArgs = {
         {
             originId: cdnContentBucket.arn,
             domainName: cdnContentBucket.bucketDomainName,
-        }
-        // TODO: Specify additional caching behaviors to route traffic to the dynamic origin.
+        },
+        {
+            originId: loadBalancer.alb.arn,
+            domainName: loadBalancer.alb.dnsName.apply(domain => domain),
+            customOriginConfig: {
+                httpPort: 80,
+                httpsPort: 443,
+                originKeepaliveTimeout: 60,
+                originReadTimeout: 60,
+                originProtocolPolicy: "https-only",
+                // The ALB handles SSL and termination.
+                originSslProtocols: ["SSLv3", "TLSv1", "TLSv1.1", "TLSv1.2"],
+            },
+        },
     ],
 
     // CloudFront allows you to intercept and customize error responses it
@@ -109,7 +146,7 @@ const distributionArgs: aws.cloudfront.DistributionArgs = {
     loggingConfig: {
         bucket: logsBucket.bucketDomainName,
         includeCookies: false,
-        prefix: `config.hostDomain}/`,
+        prefix: `${config.hostDomain}/`,
     },
 
     // The path to return when a request comes in to the domain's root.
@@ -123,4 +160,8 @@ const distributionArgs: aws.cloudfront.DistributionArgs = {
 //
 // For information on how to work around this error, see "CloudFront ETag Out Of Sync":
 // https://docs.pulumi.com/reference/known-issues.html
+//
+// $ pulumi stack export > before.json
+// $ aws cloudfront get-distribution --id ${CLOUDFRONT_ID} | grep -i etag
+// $ pulumi stack import < after.json
 export const cdn = new aws.cloudfront.Distribution("cdn", distributionArgs);
