@@ -1,0 +1,17 @@
+{
+    "name": "lawn-gnome-network",
+    "version": "1.0.0",
+    "main": "bin/index.js",
+    "typings": "bin/index.d.ts",
+    "scripts": {
+        "build": "tsc"
+    },
+    "devDependencies": {
+        "@types/node": "^8.0.27",
+        "typescript": "^2.8.3"
+    },
+    "dependencies": {
+        "@pulumi/aws": "^0.12.0",
+        "@pulumi/pulumi": "^0.12.0"
+    }
+}

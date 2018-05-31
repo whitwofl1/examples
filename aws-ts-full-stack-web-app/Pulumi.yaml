@@ -1,0 +1,3 @@
+name: lawn-gnome-network
+runtime: nodejs
+description: It's a social network, for lawn gnomes! AWS Reference architecture for a full-stack web application.

@@ -1,0 +1,8 @@
+# Don't check in individual dev stacks.
+# TODO(chris): Add a comment here how to "resurrect" a Pulumi.yaml file if needed
+# using `pulumi config sync` and the stack name.
+Pulumi.*.
+
+# Node modules and build artifacts.
+./bin/
+./node_modules/
