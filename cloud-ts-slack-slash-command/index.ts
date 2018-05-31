@@ -1,4 +1,5 @@
 import * as cloud from "@pulumi/cloud-aws";
+import { Output } from "@pulumi/pulumi"; // for output property
 
 // Create an API endpoint
 let endpoint = new cloud.HttpEndpoint("echo");
@@ -9,4 +10,4 @@ endpoint.get("/echo", async (req, res) => {
     res.status(200).json({ now: now });
 });
 
-module.exports.endpoint = endpoint.publish().url;
+export let endpointUrl = endpoint.publish().url;
