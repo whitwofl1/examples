@@ -15,17 +15,13 @@
  */
 
 import * as aws from "@pulumi/aws";
-import * as pulumi from "@pulumi/pulumi";
 
-// Import modules so that we ensure its cloud resources are created.
-import "./dns";
-import "./loadBalancer";
+async function getAwsAccountId() {
+    let callerIdentity = await aws.getCallerIdentity();
+    return callerIdentity.accountId;
+}
 
-// Import these modules with names so we can export resource properties.
-import * as cdn from "./cdn";
-import * as config from "./config";
-
-// websiteUrl is the URL the website can be reached at.
-export const websiteUrl = `https://${config.hostDomain}/`;
-// cdnContentBucket is the S3 bucket name where static content is stored.
-export const cdnContentBucket = cdn.cdnContentBucket.bucket.apply(bucket => `s3://${bucket}`);
+// awsAccountId is the AWS Account ID of the current AWS account. Typically the
+// set of default credentials used by the AWS CLI or set via environment
+// variables. (Can also be explicitly set via Pulumi configuration values.)
+export let awsAccountId = getAwsAccountId();

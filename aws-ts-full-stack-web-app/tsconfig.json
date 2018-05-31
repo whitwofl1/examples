@@ -23,6 +23,9 @@
 
         "cdn.ts",
         "config.ts",
-        "dns.ts"
+        "dns.ts",
+        "loadBalancer.ts",
+        "securityGroups.ts",
+        "util.ts"
     ]
 }
