@@ -10,7 +10,8 @@
         "@types/node": "latest"
     },
     "dependencies": {
+        "@pulumi/cloud": "^0.13.0",
         "@pulumi/cloud-aws": "^0.13.0",
-        "@pulumi/cloud": "^0.13.0"
+        "buffer-urlencoded": "^1.0.1"
     }
 }
