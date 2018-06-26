@@ -1,0 +1,19 @@
+{
+    "name": "aws-ts-eks",
+    "main": "bin/index.js",
+    "typings": "bin/index.d.ts",
+    "scripts": {
+        "build": "tsc"
+    },
+    "devDependencies": {
+        "typescript": "^2.7.2",
+        "@types/node": "latest",
+		"@types/tmp": "^0.0.33"
+    },
+    "dependencies": {
+        "@pulumi/pulumi": "latest",
+		"@pulumi/aws": "=0.13.1-rc1",
+		"@pulumi/aws-infra": "latest",
+		"tmp": "^0.0.33"
+    }
+}
