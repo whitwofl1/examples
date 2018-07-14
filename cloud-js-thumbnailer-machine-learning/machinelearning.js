@@ -1,38 +1,39 @@
 // Copyright 2016-2018, Pulumi Corporation.  All rights reserved.
 
-"use strict";
+let cloud = require("@pulumi/cloud-aws");
 
-const cloud = require("@pulumi/cloud-aws");
-const aws = require("@pulumi/aws");
-
+// A machine learning-based video processor that labels and scores objects in frames.
 class VideoLabelProcessor {
-    constructor() {
+    constructor(name) {
+        // Create a topic for communicating results.
         let topic = new cloud.Topic("AmazonRekognitionTopic");
-        let role = createRekognitionRole();
+        let topicRole = createRekognitionRole();
 
+        // Now start the recognition job that reads from the bucket and notifies the topic.
         this.startRekognitionJob = (bucketName, filename) => {
-            var aws = require("aws-sdk");
-            var rekognition = new aws.Rekognition();
-            var params = {
-                Video: { 
-                    S3Object: {
-                        Bucket: bucketName,
-                        Name: filename,
+            var AWS = require("aws-sdk");
+            var rekognition = new AWS.Rekognition();
+            rekognition.startLabelDetection(
+                {
+                    Video: {
+                        S3Object: {
+                            Bucket: bucketName,
+                            Name: filename,
+                        }
+                    },
+                    NotificationChannel: {
+                        RoleArn: topicRole.arn.get(),
+                        SNSTopicArn: topic.topic.arn.get(),
                     }
                 },
-                NotificationChannel: {
-                    RoleArn: role.arn.get(),
-                    SNSTopicArn: topic.topic.arn.get(),
-                }
-            };
-
-            rekognition.startLabelDetection(params, (err, data) => {
-                if (!err) {
-                    console.log(`*** Submitted Rekognition job for ${filename}`);
-                } else {
-                    console.log(err, err.stack);
-                }
-            });
+                (err, data) => {
+                    if (!err) {
+                        console.log(`*** Submitted Rekognition job for ${filename}`);
+                    } else {
+                        console.log(err, err.stack);
+                    }
+                },
+            );
         }
 
         this.onLabelResult = (searchLabel, action) => {
@@ -40,8 +41,8 @@ class VideoLabelProcessor {
                 console.log("*** Rekognition job complete");
 
                 if (jobStatus.Status == "SUCCEEDED" && jobStatus.API == "StartLabelDetection") {
-                    var aws = require("aws-sdk");
-                    var rekognition = new aws.Rekognition();
+                    var AWS = require("aws-sdk");
+                    var rekognition = new AWS.Rekognition();
                     rekognition.getLabelDetection( { JobId: jobStatus.JobId },
                         function (err, data) {
                             if (!err) {
@@ -77,7 +78,9 @@ function getTimestampForLabel(labels, filterName) {
     return bestTimestamp / 1000; // convert to milliseconds
 }
 
-function createRekognitionRole() {
+function createRekognitionRole(parent) {
+    let aws = require("@pulumi/aws");
+
     let policy = {
         "Version": "2012-10-17",
         "Statement": [

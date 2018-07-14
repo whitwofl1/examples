@@ -1,53 +1,45 @@
 // Copyright 2016-2018, Pulumi Corporation.  All rights reserved.
 
-"use strict";
-
-const cloud = require("@pulumi/cloud-aws");
-const video = require("./video-label-processor");
+let cloud = require("@pulumi/cloud-aws");
+let ml = require("./machinelearning");
 
 // A bucket to store videos and thumbnails.
-const bucket = new cloud.Bucket("bucket");
-const bucketName = bucket.bucket.id;
+let bucket = new cloud.Bucket("bucket");
 
-// A task which runs a containerized FFMPEG job to extract a thumbnail image.
-const ffmpegThumbnailTask = new cloud.Task("ffmpegThumbTask", {
+// A task which extracts a thumbnail using a containerized FFMPEG job.
+let ffmpegThumbnailTask = new cloud.Task("ffmpegThumbTask", {
     build: "./docker-ffmpeg-thumb",
     memoryReservation: 512,
 });
 
-// Use module for processing video through Rekognition
-const videoProcessor = new video.VideoLabelProcessor();
+// An ML-based video labeling service.
+let videoProcessor = new ml.VideoLabelProcessor("mlvlp");
 
-// When a new video is uploaded, start Rekognition label detection
-bucket.onPut("onNewVideo", bucketArgs => {
+// When a new video is uploaded, start ML-driven label detection.
+let bucketName = bucket.bucket.id;
+bucket.onPut("onNewVideo", async (bucketArgs) => {
     console.log(`*** New video: file ${bucketArgs.key} was uploaded at ${bucketArgs.eventTime}.`);
     videoProcessor.startRekognitionJob(bucketName.get(), bucketArgs.key);
-    return Promise.resolve();
 }, { keySuffix: ".mp4" });  // run this Lambda only on .mp4 files
 
-// When Rekognition processing is complete, run the FFMPEG task on the video file
-// Use the timestamp with the highest confidence for the label "cat"
-videoProcessor.onLabelResult("cat", (file, framePos) => {
+// When video processing is complete, run the FFMPEG task on the video,
+// using the timestamp with the highest confidence for the label "cat".
+videoProcessor.onLabelResult("cat", async (file, framePos) => {
     console.log(`*** Rekognition processing complete for ${bucketName.get()}/${file} at timestamp ${framePos}`);
-    const thumbnailFile = file.substring(0, file.lastIndexOf('.')) + '.jpg';
-
-    // launch ffmpeg in a container, use environment variables to connect resources together
-    ffmpegThumbnailTask.run({
+    await ffmpegThumbnailTask.run({
         environment: {
             "S3_BUCKET":   bucketName.get(),
             "INPUT_VIDEO": file,
             "TIME_OFFSET": framePos,
-            "OUTPUT_FILE": thumbnailFile,
+            "OUTPUT_FILE": file.substring(0, file.lastIndexOf('.')) + '.jpg',
         },
-    }).then(() => {
-        console.log(`*** Launched thumbnailer task.`);
     });
+    console.log(`*** Launched thumbnailer task.`);
 });
 
-// When a new thumbnail is created, log a message.
-bucket.onPut("onNewThumbnail", bucketArgs => {
+// After the thumbnail is created, log a message.
+bucket.onPut("onNewThumbnail", async (bucketArgs) => {
     console.log(`*** New thumbnail: file ${bucketArgs.key} was saved at ${bucketArgs.eventTime}.`);
-    return Promise.resolve();
 }, { keySuffix: ".jpg" });
 
 // Export the bucket name.
