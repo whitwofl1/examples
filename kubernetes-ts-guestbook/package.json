@@ -11,8 +11,9 @@
     "typescript": "^2.5.3"
   },
   "dependencies": {
-    "@pulumi/kubernetes": "^0.14.0",
-    "@pulumi/pulumi": "^0.14.0"
+    "@pulumi/docker": "^0.15.0-rc2",
+    "@pulumi/kubernetes": "^0.15.0-rc2",
+    "@pulumi/pulumi": "^0.15.0-rc2"
   },
   "license": "MIT"
 }

@@ -2,6 +2,7 @@
 
 import * as pulumi from "@pulumi/pulumi";
 import * as k8s from "@pulumi/kubernetes";
+import * as docker from "@pulumi/docker";
 
 // REDIS MASTER
 
@@ -16,11 +17,18 @@ let redisMasterService = new k8s.core.v1.Service("redis-master", {
         selector: redisMasterLabels,
     },
 });
+
+let redisImage = docker.buildAndPushImage("lukehoban/redise2e", "./app", "lukehoban/redise2e", redisMasterService, async () => ({
+    registry: "docker.io",
+    username: "lukehoban",
+    password: "password"
+}));
+
 let redisMasterDeployment = new k8s.apps.v1.Deployment("redis-master", {
     metadata: {
         name: "redis-master",
     },
-    spec: {
+    spec: redisImage.apply(_ => ({
         selector: {
             matchLabels: redisMasterLabels
         },
@@ -32,7 +40,7 @@ let redisMasterDeployment = new k8s.apps.v1.Deployment("redis-master", {
             spec: {
                 containers: [{
                     name: "master",
-                    image: "k8s.gcr.io/redis:e2e",
+                    image: "lukehoban/redise2e",
                     resources: {
                         requests: {
                             cpu: "100m",
@@ -45,7 +53,7 @@ let redisMasterDeployment = new k8s.apps.v1.Deployment("redis-master", {
                 }],
             },
         },
-    },
+    })),
 });
 
 // REDIS SLAVE
