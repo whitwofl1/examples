@@ -7,41 +7,55 @@ The component version of [aws-js-s3-folder](../aws-js-s3-folder). For a detailed
 Note: some values in this example will be different from run to run.  These values are indicated
 with `***`.
 
-1.  Create a new stack:
+1.  Run `pulumi new` to create a new project from the example:
 
     ```bash
-    $ pulumi stack init website-component-testing
+    $ pulumi new https://github.com/pulumi/examples/aws-js-s3-folder-component --dir website-component
+    This command will walk you through creating a new Pulumi project.
+
+    Enter a value or leave blank to accept the default, and press <ENTER>.
+    Press ^C at any time to quit.
+    project name: (website-component)
+    project description: (A static website hosted on AWS S3)
+    Created project 'website-component'.
+    stack name: (website-component-dev)
+    Created stack 'website-component-dev'.
+    aws:region: The AWS region to deploy into: (us-west-2)
+    Saved config.
+    Installing dependencies...
+    Your new project is configured and ready to go! ✨
+    To deploy it, 'cd website-component' and then run 'pulumi up'.
+    ```
+1.  Run `cd website-component` to change to the new project directory.
+
+    ```bash
+    $ cd website-component
     ```
 
-1.  Set the AWS region:
-
-    ```
-    $ pulumi config set aws:region us-west-2
-    ```
-
-1.  Restore NPM modules via `npm install` or `yarn install`.
-
-1.  Run `pulumi update` to preview and deploy changes.  After the preview is shown you will be
+1.  Run `pulumi up` to preview and deploy changes.  After the preview is shown you will be
     prompted if you want to continue or not.
 
     ```bash
-    $ pulumi update
-    Previewing update of stack 'website-component-testing'
+    $ pulumi up
+    Previewing update of stack 'website-component-dev'
     Previewing changes:
     ...
 
-    Updating stack 'website-component-testing'
+    Updating stack 'website-component-dev'
     Performing changes:
 
-        Type                       Name                                                  Status      Info
-    +   pulumi:pulumi:Stack        aws-js-s3-folder-component-website-component-testing  created
-    +   └─ examples:S3Folder       pulumi-static-site                                    created
-    +      ├─ aws:s3:Bucket        pulumi-static-site                                    created
-    +      ├─ aws:s3:BucketPolicy  bucketPolicy                                          created
-    +      ├─ aws:s3:BucketObject  favicon.png                                           created
-    +      └─ aws:s3:BucketObject  index.html                                            created
+        Type                         Name                                     Status      Info
+    +   pulumi:pulumi:Stack          website-component-website-component-dev  created
+    +   └─ pulumi:examples:S3Folder  pulumi-static-site                       created
+    +      ├─ aws:s3:Bucket          pulumi-static-site                       created
+    +      ├─ aws:s3:BucketPolicy    bucketPolicy                             created
+    +      ├─ aws:s3:BucketObject    index.html                               created
+    +      └─ aws:s3:BucketObject    favicon.png                              created
 
     ---outputs:---
+    bucketName: "pulumi-static-site-***"
+    websiteUrl: "***.s3-website-us-west-2.amazonaws.com"
+
     info: 6 changes performed:
         + 6 resources created
     Update duration: ***
@@ -55,7 +69,7 @@ with `***`.
     $ pulumi stack output
     Current stack outputs (2):
         OUTPUT                                           VALUE
-        bucketName                                       s3-website-bucket-***
+        bucketName                                       pulumi-static-site-***
         websiteUrl                                       ***.s3-website-us-west-2.amazonaws.com
     ```
 
