@@ -20,7 +20,6 @@
     },
     "files": [
         "index.ts",
-		"kubectl.ts",
 		"serviceRole.ts"
     ]
 }

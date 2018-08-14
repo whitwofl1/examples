@@ -6,13 +6,12 @@ import * as crypto from "crypto";
 function sha1hash(s: string): string {
     const shasum: crypto.Hash = crypto.createHash("sha1");
     shasum.update(s);
-    // TODO[pulumi/pulumi#377] Workaround for issue with long names not generating per-deplioyment randomness, leading
-    //     to collisions.  For now, limit the size of hashes to ensure we generate shorter/ resource names.
+    // Limit the size of hashes to ensure we generate shorter/ resource names.
     return shasum.digest("hex").substring(0, 8);
 }
 
 export interface ServiceRoleArgs {
-    /*
+    /**
      * The service associated with this role.
      */
     readonly service: pulumi.Input<string>;
@@ -27,7 +26,7 @@ export interface ServiceRoleArgs {
 }
 
 export class ServiceRole extends pulumi.ComponentResource {
-    // The ARN of the service role.
+    // The service role.
     public readonly role: pulumi.Output<aws.iam.Role>;
 
     constructor(name: string, args: ServiceRoleArgs, opts?: pulumi.ResourceOptions) {
@@ -56,7 +55,8 @@ export class ServiceRole extends pulumi.ComponentResource {
                 role: role,
             }, { parent: this }));
         }
-        const allRolePolicyAttachments = pulumi.all(rolePolicyAttachments);
-        this.role = pulumi.all([role.arn, allRolePolicyAttachments]).apply(() => role);
+        this.role = pulumi.all([role.arn, ...rolePolicyAttachments.map(r => r.id)]).apply(() => role);
+
+        this.registerOutputs({ role: this.role });
     }
 }
