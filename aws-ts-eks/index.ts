@@ -20,6 +20,7 @@ const cluster = new EKSCluster("eksCluster", {
     desiredCapacity: 2,
     minSize: 1,
     maxSize: 2,
+    storageClasses: "gp2",
 });
 
 // Export the cluster's kubeconfig.
@@ -30,9 +31,15 @@ const k8sProvider = new k8s.Provider("k8s", {
     kubeconfig: cluster.kubeconfig.apply(c => JSON.stringify(c)),
 });
 
-// Deploy the Apache Tomcat Helm chart into the EKS cluster.
-const tomcat = new helm.v2.Chart("tomcat", {
+// Deploy the HackMD Helm chart into the EKS cluster.
+const hackmd = new helm.v2.Chart("hackmd", {
     repo: "stable",
-    chart: "tomcat",
-    version: "0.1.0",
+    chart: "hackmd",
+    version: "0.1.1",
+    values: {
+        service: {
+            type: "LoadBalancer",
+            port: 80,
+        },
+    },
 }, { providers: { kubernetes: k8sProvider } });
