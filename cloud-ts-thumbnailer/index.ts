@@ -1,10 +1,9 @@
 // Copyright 2016-2018, Pulumi Corporation.  All rights reserved.
 
-const cloud = require("@pulumi/cloud-aws");
+import * as cloud from "@pulumi/cloud";
 
 // A bucket to store videos and thumbnails.
 const bucket = new cloud.Bucket("bucket");
-const bucketName = bucket.bucket.id;
 
 // A task which runs a containerized FFMPEG job to extract a thumbnail image.
 const ffmpegThumbnailTask = new cloud.Task("ffmpegThumbTask", {
@@ -14,16 +13,16 @@ const ffmpegThumbnailTask = new cloud.Task("ffmpegThumbTask", {
 
 // When a new video is uploaded, run the FFMPEG task on the video file.
 // Use the time index specified in the filename (e.g. cat_00-01.mp4 uses timestamp 00:01)
-bucket.onPut("onNewVideo", bucketArgs => {
+bucket.onPut("onNewVideo", async (bucketArgs) => {
     console.log(`*** New video: file ${bucketArgs.key} was uploaded at ${bucketArgs.eventTime}.`);
     const file = bucketArgs.key;
-    
+
     const thumbnailFile = file.substring(0, file.indexOf('_')) + '.jpg';
     const framePos = file.substring(file.indexOf('_')+1, file.indexOf('.')).replace('-',':');
 
     ffmpegThumbnailTask.run({
         environment: {
-            "S3_BUCKET":   bucketName.get(),
+            "BUCKET":      bucketArgs.id,
             "INPUT_VIDEO": file,
             "TIME_OFFSET": framePos,
             "OUTPUT_FILE": thumbnailFile,
@@ -39,5 +38,3 @@ bucket.onPut("onNewThumbnail", bucketArgs => {
     return Promise.resolve();
 }, { keySuffix: ".jpg" });
 
-// Export the bucket name.
-exports.bucketName = bucketName;
