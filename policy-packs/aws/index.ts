@@ -14,17 +14,20 @@ const policies = new PolicyPack("aws", {
             }),
         },
         {
-            name: "required-name-tag",
+            name: "required-name-tag-ec2-instance",
             description: "A 'Name' tag is required.",
             enforcementLevel: "mandatory",
-            validateResource: [
-                validateTypedResource(aws.ec2.Instance.isInstance, (it, args, reportViolation) => {
-                    requireNameTag(it.tags, reportViolation);
-                }),
-                validateTypedResource(aws.ec2.Vpc.isInstance, (it, args, reportViolation) => {
-                    requireNameTag(it.tags, reportViolation);
-                }),
-            ],
+            validateResource: validateTypedResource(aws.ec2.Instance.isInstance, (it, args, reportViolation) => {
+                requireNameTag(it.tags, reportViolation);
+            }),
+        },
+        {
+            name: "required-name-tag-ec2-vpc",
+            description: "A 'Name' tag is required.",
+            enforcementLevel: "mandatory",
+            validateResource: validateTypedResource(aws.ec2.Vpc.isInstance, (it, args, reportViolation) => {
+                requireNameTag(it.tags, reportViolation);
+            }),
         },
         {
             name: "prohibited-public-internet",

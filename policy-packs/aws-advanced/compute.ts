@@ -20,7 +20,7 @@ import {
     validateTypedResource,
 } from "@pulumi/policy";
 
-export function requireApprovedAmisById(
+export function requireApprovedAmisByIdOnEc2Instances(
     name: string,
     approvedAmis: string | Iterable<string>,
 ): ResourceValidationPolicy {
@@ -28,25 +28,49 @@ export function requireApprovedAmisById(
 
     return {
         name: name,
-        description: "Instances should use approved AMIs.",
+        description: "EC2 Instances should use approved AMIs.",
         enforcementLevel: "mandatory",
-        validateResource: [
-            validateTypedResource(aws.ec2.Instance.isInstance, (it, args, reportViolation) => {
-                if (amis && !amis.has(it.ami)) {
-                    reportViolation("EC2 Instances should use approved AMIs.");
-                }
-            }),
-            validateTypedResource(aws.ec2.LaunchConfiguration.isInstance, (it, args, reportViolation) => {
-                if (amis && !amis.has(it.imageId)) {
-                    reportViolation("EC2 LaunchConfigurations should use approved AMIs.");
-                }
-            }),
-            validateTypedResource(aws.ec2.LaunchTemplate.isInstance, (it, args, reportViolation) => {
-                if (amis && it.imageId && !amis.has(it.imageId)) {
-                    reportViolation("EC2 LaunchTemplates should use approved AMIs.");
-                }
-            }),
-        ],
+        validateResource: validateTypedResource(aws.ec2.Instance.isInstance, (it, args, reportViolation) => {
+            if (amis && !amis.has(it.ami)) {
+                reportViolation("EC2 Instances should use approved AMIs.");
+            }
+        }),
+    };
+}
+
+export function requireApprovedAmisByIdOnEc2LaunchConfigurations(
+    name: string,
+    approvedAmis: string | Iterable<string>,
+): ResourceValidationPolicy {
+    const amis = toStringSet(approvedAmis);
+
+    return {
+        name: name,
+        description: "EC2 LaunchConfigurations should use approved AMIs.",
+        enforcementLevel: "mandatory",
+        validateResource: validateTypedResource(aws.ec2.LaunchConfiguration.isInstance, (it, args, reportViolation) => {
+            if (amis && !amis.has(it.imageId)) {
+                reportViolation("EC2 LaunchConfigurations should use approved AMIs.");
+            }
+        }),
+    };
+}
+
+export function requireApprovedAmisByIdOnEc2LaunchTemplates(
+    name: string,
+    approvedAmis: string | Iterable<string>,
+): ResourceValidationPolicy {
+    const amis = toStringSet(approvedAmis);
+
+    return {
+        name: name,
+        description: "EC2 LaunchTemplates should use approved AMIs.",
+        enforcementLevel: "mandatory",
+        validateResource: validateTypedResource(aws.ec2.LaunchTemplate.isInstance, (it, args, reportViolation) => {
+            if (amis && it.imageId && !amis.has(it.imageId)) {
+                reportViolation("EC2 LaunchTemplates should use approved AMIs.");
+            }
+        }),
     };
 }
 
@@ -72,7 +96,8 @@ export function requireHealthChecksOnAsgElb(name: string): ResourceValidationPol
     };
 }
 
-export function requireInstanceTenancy(
+
+export function requireTenancyOnEC2Instances(
     name: string,
     tenancy: "DEDICATED" | "HOST" | "DEFAULT",
     imageIds?: string | Iterable<string>,
@@ -87,26 +112,42 @@ export function requireInstanceTenancy(
             hosts,
         )} should use tenancy '${tenancy}'`,
         enforcementLevel: "mandatory",
-        validateResource: [
-            validateTypedResource(aws.ec2.Instance.isInstance, (it, args, reportViolation) => {
-                if (hosts !== undefined && hosts.has(it.hostId)) {
-                    if (it.tenancy !== tenancy) {
-                        reportViolation(`EC2 Instance with host ID '${it.hostId}' not using tenancy '${tenancy}'.`);
-                    }
-                } else if (images !== undefined && images.has(it.ami)) {
-                    if (it.tenancy !== tenancy) {
-                        reportViolation(`EC2 Instance with AMI '${it.ami}' not using tenancy '${tenancy}'.`);
-                    }
+        validateResource: validateTypedResource(aws.ec2.Instance.isInstance, (it, args, reportViolation) => {
+            if (hosts !== undefined && hosts.has(it.hostId)) {
+                if (it.tenancy !== tenancy) {
+                    reportViolation(`EC2 Instance with host ID '${it.hostId}' not using tenancy '${tenancy}'.`);
                 }
-            }),
-            validateTypedResource(aws.ec2.LaunchConfiguration.isInstance, (it, args, reportViolation) => {
-                if (images !== undefined && images.has(it.imageId)) {
-                    if (it.placementTenancy !== tenancy) {
-                        reportViolation(`EC2 LaunchConfiguration with image ID '${it.imageId}' not using tenancy '${tenancy}'.`);
-                    }
+            } else if (images !== undefined && images.has(it.ami)) {
+                if (it.tenancy !== tenancy) {
+                    reportViolation(`EC2 Instance with AMI '${it.ami}' not using tenancy '${tenancy}'.`);
                 }
-            }),
-        ],
+            }
+        }),
+    };
+}
+
+export function requireTenancyOnEC2LaunchConfigurations(
+    name: string,
+    tenancy: "DEDICATED" | "HOST" | "DEFAULT",
+    imageIds?: string | Iterable<string>,
+    hostIds?: string | Iterable<string>,
+): ResourceValidationPolicy {
+    const images = toStringSet(imageIds);
+    const hosts = toStringSet(hostIds);
+
+    return {
+        name: name,
+        description: `Instances with AMIs ${setToString(images)} or host IDs ${setToString(
+            hosts,
+        )} should use tenancy '${tenancy}'`,
+        enforcementLevel: "mandatory",
+        validateResource: validateTypedResource(aws.ec2.LaunchConfiguration.isInstance, (it, args, reportViolation) => {
+            if (images !== undefined && images.has(it.imageId)) {
+                if (it.placementTenancy !== tenancy) {
+                    reportViolation(`EC2 LaunchConfiguration with image ID '${it.imageId}' not using tenancy '${tenancy}'.`);
+                }
+            }
+        }),
     };
 }
 
