@@ -1,12 +1,21 @@
 {
     "name": "aws-policies",
     "version": "0.1.0",
+    "scripts": {
+        "build": "tsc -p .",
+        "test": "PULUMI_TEST_MODE=true PULUMI_NODEJS_STACK=\"my-ws\" PULUMI_NODEJS_PROJECT=\"dev\" PULUMI_CONFIG='{ \"aws:region\": \"us-west-2\" }' mocha bin/tests/**.spec.js"
+      },
     "devDependencies": {
-        "@types/node": "latest"
+        "@types/chai": "^4.2.4",
+        "@types/mocha": "^5.2.7",
+        "@types/node": "latest",
+        "chai": "^4.2.0",
+        "mocha": "^6.2.1",
+        "typescript": "^3.6.4"
     },
     "dependencies": {
-        "@pulumi/pulumi": "0.17.21",
         "@pulumi/aws": "0.18.16",
-        "@pulumi/policy": "dev"
+        "@pulumi/policy": "dev",
+        "@pulumi/pulumi": "0.17.21"
     }
 }
