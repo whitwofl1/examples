@@ -1,11 +1,8 @@
 [![Deploy](https://get.pulumi.com/new/button.svg)](https://app.pulumi.com/new)
 
-# Azure App Service with SQL Database and Application Insights
+# Custom Docker Image running in Azure Container Instances
 
-Starting point for building web application hosted in Azure App Service.
-
-Provisions Azure SQL Database and Azure Application Insights to be used in combination
-with App Service.
+Starting point for building web application hosted in Azure Container Instances.
 
 ## Deploying the App
 
@@ -36,12 +33,6 @@ To deploy your infrastructure, follow the below steps.
     $ pulumi config set azure:location <location>
     ```
 
-1. Define SQL Server password (make it complex enough to satisfy Azure policy):
-
-    ```
-    pulumi config set --secret sqlPassword <value>
-    ```
-
 1.  Run `pulumi up` to preview and deploy changes:
 
     ```
@@ -51,22 +42,24 @@ To deploy your infrastructure, follow the below steps.
 
     Performing changes:
     ...
-    info: 10 changes performed:
+    info: 55 changes performed:
         + 10 resources created
-    Update duration: 1m14.59910109s
+    Update duration: 1m56s
     ```
 
-1.  Check the deployed website endpoint:
+1.  Check the deployed container endpoint:
 
     ```
     $ pulumi stack output endpoint
-    https://azpulumi-as0ef47193.azurewebsites.net
+    https://acifsharp.westeurope.azurecontainer.io
     $ curl "$(pulumi stack output endpoint)"
     <html>
-        <body>
-            <h1>Greetings from Azure App Service!</h1>
-        </body>
-    </html>
+    <head><meta charset="UTF-8">
+    <title>Hello, Pulumi!</title></head>
+    <body>
+        <p>Hello, containers!</p>
+        <p>Made with ❤️ with <a href="https://pulumi.com">Pulumi</a></p>
+    </body></html>
     ```
 
 6. From there, feel free to experiment. Simply making edits and running `pulumi up` will incrementally update your stack.
