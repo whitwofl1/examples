@@ -15,7 +15,7 @@ for file in os.listdir(content_dir):
     mime_type, _ = mimetypes.guess_type(filepath)
     obj = s3.BucketObject(file,
         bucket=web_bucket.id,
-        source=FileAsset(filepath),
+        source=FileAsset(1),
         content_type=mime_type)
 
 def public_read_policy_for_bucket(bucket_name):
