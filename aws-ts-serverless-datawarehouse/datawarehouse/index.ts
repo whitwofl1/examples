@@ -24,8 +24,8 @@ export class ServerlessDataWarehouse extends pulumi.ComponentResource {
      * Add option for encryption
      * 
      */
-    constructor(name: string, args?: DataWarehouseArgs) {
-        super("serverless:datawarehouse", name, {});
+    constructor(name: string, args?: DataWarehouseArgs, opts?: pulumi.ComponentResourceOptions) {
+        super("serverless:data_warehouse", name, opts);
 
         const bucketArgs: BucketArgs | undefined = args?.isDev ? { forceDestroy: true } : undefined;
 
@@ -93,7 +93,7 @@ export class ServerlessDataWarehouse extends pulumi.ComponentResource {
             table: name,
             scheduleExpression: args.scheduleExpression,
         };
-        const partitionRegistrar = new HourlyPartitionRegistrar(`${name}-partitionregistrar`, registrarArgs, { parent: this });
+        new HourlyPartitionRegistrar(`${name}-partitionregistrar`, registrarArgs, { parent: this });
 
         return this;
     }
@@ -114,7 +114,7 @@ export class ServerlessDataWarehouse extends pulumi.ComponentResource {
             policyARNsToAttach
         };
 
-        const lambdaCron = new LambdaCronJob(name, lambdaCronArgs, { parent: this });
+        new LambdaCronJob(name, lambdaCronArgs, { parent: this });
 
         return this;
     }
@@ -160,7 +160,6 @@ export class ServerlessDataWarehouse extends pulumi.ComponentResource {
         return format;
     }
 
-    // TODO: support formats other than parquet
     private createTable(name: string, columns: input.glue.CatalogTableStorageDescriptorColumn[], dataFormat: DataFormat, partitionKeys?: input.glue.CatalogTablePartitionKey[]): aws.glue.CatalogTable {
         const location = getS3Location(this.dataWarehouseBucket, name);
 

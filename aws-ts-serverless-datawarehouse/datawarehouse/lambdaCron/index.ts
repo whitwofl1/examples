@@ -8,7 +8,7 @@ import { ARN } from "@pulumi/aws";
 export class LambdaCronJob extends pulumi.ComponentResource {
 
     constructor(name: string, args: LambdaCronJobArgs, opts?: pulumi.ComponentResourceOptions) { 
-        super("serverless:lambdacronjob", name, opts);
+        super("serverless:lambda_cron_job", name, opts);
         const options  = { parent: this }; 
         const { scheduleExpression, jobFn, policyARNsToAttach } = args;
 
@@ -53,7 +53,7 @@ export class LambdaCronJob extends pulumi.ComponentResource {
             role: partitionRole,
             callback: jobFn,
             timeout: 900
-        }), options);
+        }, options), options);
     }
 }
 

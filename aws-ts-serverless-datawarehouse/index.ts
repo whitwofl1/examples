@@ -7,7 +7,7 @@ import { EventRuleEvent } from "@pulumi/aws/cloudwatch";
 import * as moment from "moment-timezone";
 
 import { ServerlessDataWarehouse, StreamingInputTableArgs, BatchInputTableArgs, TableArgs } from "./datawarehouse";
-import { createEventGenerator } from "./testing/eventGenerator";
+import { EventGenerator } from "./testing/eventGenerator";
 
 // app specific config
 const config = new pulumi.Config();
@@ -154,11 +154,11 @@ dataWarehouse.withTable("facts", factTableArgs);
 // Load a static facts file into the facts table.
 const data = `{"thing": "sky", "color": "blue"}\n{ "thing": "seattle sky", "color": "grey"}\n{ "thing": "oranges", "color": "orange"}`;
 
-const bucketObject = new aws.s3.BucketObject("factsFile", {
+new aws.s3.BucketObject("factsFile", {
     bucket: dataWarehouse.dataWarehouseBucket,
     content: data,
     key: `${factTableName}/facts.json`
 });
 
-createEventGenerator("impression", impressionsInputStream.name);
-createEventGenerator("clicks", clicksInputStream.name);
+new EventGenerator("impressions-generator", { inputStreamName: impressionsInputStream.name, eventType: "impressions" });
+new EventGenerator("clicks-generator", { inputStreamName: clicksInputStream.name, eventType: "clicks" });

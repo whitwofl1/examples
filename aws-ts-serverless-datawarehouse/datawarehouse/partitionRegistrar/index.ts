@@ -9,11 +9,9 @@ import { LambdaCronJob, LambdaCronJobArgs } from "../lambdaCron";
 export class HourlyPartitionRegistrar extends pulumi.ComponentResource {
 
     constructor(name: string, args: PartitionRegistrarArgs, opts?: pulumi.ComponentResourceOptions) {
-        super("serverless:partitionregistrar", name, opts);
+        super("serverless:partition_registrar", name, opts);
         const { dataWarehouseBucket, athenaResultsBucket, scheduleExpression, table, partitionKey } = args;
         const location = getS3Location(dataWarehouseBucket, table);
-
-        const options = { parent: this };
 
         const resultsBucket = athenaResultsBucket.arn.apply(a => `s3://${a.split(":::")[1]}`);
 
@@ -25,7 +23,6 @@ export class HourlyPartitionRegistrar extends pulumi.ComponentResource {
         const schedule = scheduleExpression ? scheduleExpression : `rate(1 hour)`;
 
         const partitionRegistrarFn = (event: EventRuleEvent) => {
-            // create an athena client here, write the 
             const athena = require("athena-client");
             const clientConfig = {
                 bucketUri: resultsBucket.get()
@@ -51,7 +48,7 @@ export class HourlyPartitionRegistrar extends pulumi.ComponentResource {
             policyARNsToAttach
         }
 
-        const hourlyPartitionRegistrar = new LambdaCronJob(name, cronArgs, options);
+        new LambdaCronJob(name, cronArgs, { parent: this });
     }
 }
 
@@ -62,5 +59,5 @@ export interface PartitionRegistrarArgs {
     athenaResultsBucket: aws.s3.Bucket;
     database: aws.glue.CatalogDatabase;
     region: string;
-    scheduleExpression?: string; // TODO: we should remove this. It's useful in active development, but users would probably never bother. 
+    scheduleExpression?: string;
 }
