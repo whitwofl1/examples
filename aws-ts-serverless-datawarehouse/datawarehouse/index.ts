@@ -59,7 +59,7 @@ export class ServerlessDataWarehouse extends pulumi.ComponentResource {
     }
 
     public withStreamingInputTable(name: string, args: StreamingInputTableArgs): ServerlessDataWarehouse {
-        const { partitionKeyName, columns, inputStreamShardCount } = args;
+        const { partitionKeyName, columns, inputStreamShardCount, fileFlushIntervalSeconds } = args;
         const partitionKey = partitionKeyName ? partitionKeyName : "inserted_at";
 
         const partitionKeys: input.glue.CatalogTablePartitionKey[] = [{
@@ -78,7 +78,8 @@ export class ServerlessDataWarehouse extends pulumi.ComponentResource {
             destinationBucket: this.dataWarehouseBucket,
             shardCount: inputStreamShardCount,
             databaseName: this.database.name,
-            tableName: name
+            tableName: name,
+            fileFlushIntervalSeconds
         };
 
         const { inputStream } = new InputStream(`inputstream-${name}`, streamArgs, { parent: this });
@@ -91,7 +92,7 @@ export class ServerlessDataWarehouse extends pulumi.ComponentResource {
             dataWarehouseBucket: this.dataWarehouseBucket,
             athenaResultsBucket: this.queryResultsBucket,
             table: name,
-            scheduleExpression: args.scheduleExpression,
+            scheduleExpression: args.partitionScheduleExpression,
         };
         new HourlyPartitionRegistrar(`${name}-partitionregistrar`, registrarArgs, { parent: this });
 
@@ -216,7 +217,8 @@ export interface StreamingInputTableArgs {
     inputStreamShardCount: number;
     region: string;
     partitionKeyName?: string;
-    scheduleExpression?: string; // TODO: we should remove this. It's useful in active development, but users would probably never bother. 
+    partitionScheduleExpression?: string; 
+    fileFlushIntervalSeconds?: number;
 }
 
 export interface BatchInputTableArgs {

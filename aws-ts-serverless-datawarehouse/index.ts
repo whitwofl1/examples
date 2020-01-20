@@ -13,11 +13,13 @@ import { EventGenerator } from "./testing/eventGenerator";
 const config = new pulumi.Config();
 const awsConfig = new pulumi.Config("aws")
 const region = awsConfig.require("region");
-const stage = config.require("stage");
-const shards: { [key: string]: number } = config.requireObject("shards");
 const isDev = config.get("dev") === 'true';
+
+// during development we run all of our crons 
+// at a faster cadence to expedite testing
 const cronUnit = isDev ? "minute" : "hour";
 const scheduleExpression = `rate(1 ${cronUnit})`;
+const fileFlushIntervalSeconds = isDev ? 60 : 900;
 
 // dw w/ streaming input table
 const columns = [
@@ -30,11 +32,7 @@ const columns = [
         type: "string"
     },
     {
-        name: "message",
-        type: "string"
-    },
-    {
-        name: "event_type",
+        name: "event_time",
         type: "string"
     }
 ];
@@ -44,9 +42,10 @@ const clicksTableName = "clicks";
 
 const genericTableArgs: StreamingInputTableArgs = {
     columns,
-    inputStreamShardCount: shards[stage],
+    inputStreamShardCount: 1,
     region,
-    scheduleExpression
+    partitionScheduleExpression: scheduleExpression,
+    fileFlushIntervalSeconds
 }
 
 // create two tables with kinesis input streams, writing data into hourly partitions in S3. 
@@ -131,7 +130,6 @@ const aggregateTableArgs: BatchInputTableArgs = {
 dataWarehouse.withBatchInputTable(aggregateTableName, aggregateTableArgs);
 
 // create a static fact table
-
 const factTableName = "facts";
 const factColumns = [
     {
@@ -160,5 +158,8 @@ new aws.s3.BucketObject("factsFile", {
     key: `${factTableName}/facts.json`
 });
 
-new EventGenerator("impressions-generator", { inputStreamName: impressionsInputStream.name, eventType: "impressions" });
-new EventGenerator("clicks-generator", { inputStreamName: clicksInputStream.name, eventType: "clicks" });
+// conditionally create mock data for development
+if (isDev) {
+    new EventGenerator("impressions-generator", { inputStreamName: impressionsInputStream.name, eventType: "impressions" });
+    new EventGenerator("clicks-generator", { inputStreamName: clicksInputStream.name, eventType: "clicks" });
+}

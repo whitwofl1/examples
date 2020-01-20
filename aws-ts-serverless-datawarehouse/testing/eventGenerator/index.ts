@@ -9,7 +9,7 @@ export class EventGenerator extends pulumi.ComponentResource {
 
         const { eventType, inputStreamName } = args
 
-        const eventGenCallback = () => {
+        const eventGenCallback = (event: EventRuleEvent) => {
             const AWS = require("aws-sdk");
             const uuid = require("uuid/v4")
             const kinesis = new AWS.Kinesis();
@@ -21,8 +21,7 @@ export class EventGenerator extends pulumi.ComponentResource {
                 Data: JSON.stringify({
                     id: eventId,
                     session_id: sessionId,
-                    message: "this is a message",
-                    event_type: eventType,
+                    event_time: event.time,
                 }),
                 PartitionKey: sessionId
             };

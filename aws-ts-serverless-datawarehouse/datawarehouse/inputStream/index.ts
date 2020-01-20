@@ -8,6 +8,8 @@ export class InputStream extends pulumi.ComponentResource {
     constructor(name: string, args: InputStreamArgs, opts?: pulumi.ComponentResourceOptions) {
         super("serverless:input_stream", name, opts);
 
+        const bufferInterval = args.fileFlushIntervalSeconds || 60;
+
         const kinesis = new aws.kinesis.Stream(`${name}-input-stream`,
             { shardCount: args.shardCount },
             { parent: this }
@@ -90,7 +92,7 @@ export class InputStream extends pulumi.ComponentResource {
                     },
                     bucketArn: args.destinationBucket.arn,
                     prefix: args.tableName + '/',
-                    bufferInterval: 60,// todo make configurable 
+                    bufferInterval,
                     bufferSize: 64,
                     roleArn: role.arn,
                     dataFormatConversionConfiguration: {
@@ -127,4 +129,5 @@ export interface InputStreamArgs {
     tableName: pulumi.Input<string>;
     destinationBucket: aws.s3.Bucket;
     shardCount: number;
+    fileFlushIntervalSeconds?: number;
 }

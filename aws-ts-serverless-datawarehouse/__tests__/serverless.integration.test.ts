@@ -11,8 +11,6 @@ const region = "us-west-2";
 beforeAll(async () => {
     const config: { [key: string]: string } = {
         "aws:region": region,
-        "aws-ts-serverless-datawarehouse:shards": '{"prod": 8, "gamma": 4, "beta": 1}',
-        "aws-ts-serverless-datawarehouse:stage": "beta",
         "aws-ts-serverless-datawarehouse:dev": "true"
     };
 
