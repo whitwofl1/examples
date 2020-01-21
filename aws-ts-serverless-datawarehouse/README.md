@@ -231,3 +231,18 @@ const aggregateTableArgs: BatchInputTableArgs = {
 
 dataWarehouse.withBatchInputTable(aggregateTableName, aggregateTableArgs);
 ```
+
+#### `getTable: function`
+Retrieves a table with the specified name.
+
+Parameters: 
+- `name: string` the name of the `ServerlessDataWarehouse` owned table to retrieve. 
+
+#### `listTables: function`
+Returns an array of table names managed by this data warehouse.
+
+#### `getInputStream: function`
+Retrieves the input stream associated with the specified table name, if any. 
+
+Parameters:
+- `tableName: string`: Name of the table to find an associated inputStream for. 
