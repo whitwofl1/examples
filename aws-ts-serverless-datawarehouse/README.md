@@ -63,6 +63,13 @@ Parameters:
   - `database?: aws.glue.CatalogDatabase`: optionally provide an existing Glue Database.
   - `isDev?: boolean`: flag for development, enables force destroy on S3 buckets to simplify stack teardown. 
 
+```ts
+const dataWarehouse = new ServerlessDataWarehouse("analytics_dw");
+
+// make available as pulumi stack output
+export dwBucket = dataWarehouse.dataWarehouseBucket;
+```
+
 
 ### Members:
 - `dataWarehouseBucket: aws.s3.bucket`: Bucket to store table data.
@@ -81,6 +88,27 @@ Parameters:
   - `partitionKeys?: input.glue.CatalogTablePartitionKey[]`: Partition keys to be associated with the schema. 
   - `dataFormat?: "JSON" | "parquet"`: Specifies the encoding of files written to `${this.dataWarehouseBucket}/${name}`. Defaults to parquet. Will be used to configure serializers and metadata that enable Athena and other engines to execute queries. 
 
+```ts
+const factTableName = "facts";
+const factColumns = [
+    {
+        name: "thing",
+        type: "string"
+    },
+    {
+        name: "color",
+        type: "string"
+    }
+];
+
+const factTableArgs: TableArgs = {
+    columns: factColumns,
+    dataFormat: "JSON"
+};
+
+dataWarehouse.withTable("facts", factTableArgs);
+```
+
 #### `withStreamingBatchInputTable: function`
 Creates a table implements the above architecture diagram. It creates a Kinesis input stream for JSON records, a Glue Table, and Kinesis Firehose that vets JSON records against the schema, converts them to parquet, and writes files into hourly folders `${dataWarehouseBucket}/${tableName}/YYYY/MM/DD/HH`. Partitions are automatically registered for a key `inserted_at="YYYY/MM/DD/HH` to enable processing time queries. 
 
@@ -92,6 +120,38 @@ Parameters:
   - `region: string`: region to localize resources like Kinesis and Lambda
   - `partitionKeyName?: string`: Name of the `YYYY/MM/DD/HH` partition key. Defaulst to `inserted_at`.
   - `partitionScheduleExpression?: string` AWS Lambda cron expression used to schedule the job that writes partition keys to Glue. Defaults to `rate(1 hour)`. Useful for development or integration testing where you want to ensure that partitions are writtin in a timely manner. 
+- `fileFlushIntervalSeconds?: number`: Period in seconds that Kinesis shards flush files to S3. Defaults to the max of 900 (15 minutes). Min 60 seconds. 
+
+```ts
+const columns = [
+    {
+        name: "id",
+        type: "string"
+    },
+    {
+        name: "session_id",
+        type: "string"
+    },
+    {
+        name: "event_time",
+        type: "string"
+    }
+];
+
+const impressionsTableName = "impressions";
+
+const streamingTableArgs: StreamingInputTableArgs = {
+    columns,
+    inputStreamShardCount: 1,
+    region: "us-west-2",
+    partitionScheduleExpression: "rate(1 minute)",
+    fileFlushIntervalSeconds: 60
+};
+
+
+const dataWarehouse = new ServerlessDataWarehouse("analytics_dw", { isDev })
+    .withStreamingInputTable("impressions", streamingTableArgs);
+```
 
 
 #### `withBatchInputTable: function`
@@ -108,5 +168,66 @@ Parameters:
   - `policyARNsToAttach?: pulumi.Input<ARN>[]`: List of ARNs needed by the Lambda role for `jobFn` to run successfully. (Athena access, S3 access, Glue access, etc).
   - `dataFormat?: "JSON" | "parquet"`: Specifies the encoding of files written to `${this.dataWarehouseBucket}/${name}`. Defaults to parquet. Will be used to configure serializers and metadata that enable Athena and other engines to execute queries. 
 
+```ts
+const aggregateTableName = "aggregates";
 
+const aggregateTableColumns = [
+    {
+        name: "event_type",
+        type: "string"
+    },
+    {
+        name: "count",
+        type: "int"
+    },
+    {
+        name: "time",
+        type: "string"
+    }
+];
 
+// Function reads from other tables via Athena and writes JSON to S3.
+const aggregationFunction = async (event: EventRuleEvent) => {
+    const athena = require("athena-client");
+    const bucketUri = `s3://${athenaResultsBucket.get()}`;
+    const clientConfig = {
+        bucketUri
+    };
+    const awsConfig = {
+        region
+    };
+    const athenaClient = athena.createClient(clientConfig, awsConfig);
+    let date = moment(event.time);
+    const partitionKey = date.utc().format("YYYY/MM/DD/HH");
+    const getAggregateQuery = (table: string) => `select count(*) from ${databaseName.get()}.${table} where inserted_at='${partitionKey}'`;
+    const clicksPromise = athenaClient.execute(getAggregateQuery(clicksTableName)).toPromise();
+    const impressionsPromise = athenaClient.execute(getAggregateQuery(impressionsTableName)).toPromise();
+
+    const clickRows = await clicksPromise;
+    const impressionRows = await impressionsPromise;
+    const clickCount = clickRows.records[0]['_col0'];
+    const impressionsCount = impressionRows.records[0]['_col0'];
+    const data = `{ "event_type": "${clicksTableName}", "count": ${clickCount}, "time": "${partitionKey}" }\n{ "event_type": "${impressionsTableName}", "count": ${impressionsCount}, "time": "${partitionKey}"}`;
+    const s3Client = new S3();
+    await s3Client.putObject({
+        Bucket: dwBucket.get(),
+        Key: `${aggregateTableName}/${partitionKey}/results.json`,
+        Body: data
+    }).promise();
+};
+
+const policyARNsToAttach: pulumi.Input<ARN>[] = [
+    aws.iam.ManagedPolicies.AmazonAthenaFullAccess,
+    aws.iam.ManagedPolicies.AmazonS3FullAccess
+];
+
+const aggregateTableArgs: BatchInputTableArgs = {
+    columns: aggregateTableColumns,
+    jobFn: aggregationFunction,
+    scheduleExpression,
+    policyARNsToAttach,
+    dataFormat: "JSON",
+}
+
+dataWarehouse.withBatchInputTable(aggregateTableName, aggregateTableArgs);
+```

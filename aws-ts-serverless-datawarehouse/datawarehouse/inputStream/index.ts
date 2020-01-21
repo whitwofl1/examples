@@ -8,7 +8,7 @@ export class InputStream extends pulumi.ComponentResource {
     constructor(name: string, args: InputStreamArgs, opts?: pulumi.ComponentResourceOptions) {
         super("serverless:input_stream", name, opts);
 
-        const bufferInterval = args.fileFlushIntervalSeconds || 60;
+        const bufferInterval = args.fileFlushIntervalSeconds || 900;
 
         const kinesis = new aws.kinesis.Stream(`${name}-input-stream`,
             { shardCount: args.shardCount },
