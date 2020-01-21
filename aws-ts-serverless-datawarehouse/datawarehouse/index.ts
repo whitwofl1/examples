@@ -17,13 +17,6 @@ export class ServerlessDataWarehouse extends pulumi.ComponentResource {
     private tables: { [key: string]: aws.glue.CatalogTable } = {};
     private inputStreams: { [key: string]: aws.kinesis.Stream } = {};
 
-    /**
-     * TODO: 
-     * let's expose some helpful utilities here:
-     * GetAthenaQueryIAMPolicy: return the JSON required to query against this thing.
-     * Add option for encryption
-     * 
-     */
     constructor(name: string, args?: DataWarehouseArgs, opts?: pulumi.ComponentResourceOptions) {
         super("serverless:data_warehouse", name, opts);
 
